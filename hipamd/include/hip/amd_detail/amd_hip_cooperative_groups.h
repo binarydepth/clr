@@ -21,7 +21,7 @@ THE SOFTWARE.
 */
 
 /**
- *  @file  amd_detail/hip_cooperative_groups.h
+ *  @file  amd_detail/amd_hip_cooperative_groups.h
  *
  *  @brief Device side implementation of `Cooperative Group` feature.
  *
@@ -49,16 +49,16 @@ namespace cooperative_groups {
  */
 class thread_group {
  protected:
-  uint32_t _type;  // thread_group type
-  uint32_t _size;  // total number of threads in the tread_group
-  uint64_t _mask;  // Lanemask for coalesced and tiled partitioned group types,
-                   // LSB represents lane 0, and MSB represents lane 63
+  uint32_t _type;  //! thread_group type
+  uint32_t _size;  //! total number of threads in the tread_group
+  uint64_t _mask;  //! Lanemask for coalesced and tiled partitioned group types,
+                   //! LSB represents lane 0, and MSB represents lane 63
 
-  // Construct a thread group, and set thread group type and other essential
-  // thread group properties. This generic thread group is directly constructed
-  // only when the group is supposed to contain only the calling the thread
-  // (throurh the API - `this_thread()`), and in all other cases, this thread
-  // group object is a sub-object of some other derived thread group object
+  //! Construct a thread group, and set thread group type and other essential
+  //! thread group properties. This generic thread group is directly constructed
+  //! only when the group is supposed to contain only the calling the thread
+  //! (throurh the API - `this_thread()`), and in all other cases, this thread
+  //! group object is a sub-object of some other derived thread group object
   __CG_QUALIFIER__ thread_group(internal::group_type type, uint32_t size = static_cast<uint64_t>(0),
                                 uint64_t mask = static_cast<uint64_t>(0)) {
     _type = type;
@@ -84,21 +84,19 @@ class thread_group {
   friend class thread_block;
 
  public:
-  // Total number of threads in the thread group, and this serves the purpose
-  // for all derived cooperative group types since their `size` is directly
-  // saved during the construction
+  //! Total number of threads in the thread group, and this serves the purpose
+  //! for all derived cooperative group types since their `size` is directly
+  //! saved during the construction
   __CG_QUALIFIER__ uint32_t size() const { return _size; }
   __CG_QUALIFIER__ unsigned int cg_type() const { return _type; }
-  // Rank of the calling thread within [0, size())
+  //! Rank of the calling thread within [0, size())
   __CG_QUALIFIER__ uint32_t thread_rank() const;
-  // Is this cooperative group type valid?
+  //! Returns true if the group is valid
   __CG_QUALIFIER__ bool is_valid() const;
-  // synchronize the threads in the thread group
+  //! Synchronize the threads in the group
   __CG_QUALIFIER__ void sync() const;
 };
 /**
- *-------------------------------------------------------------------------------------------------
- *-------------------------------------------------------------------------------------------------
  *  @defgroup CooperativeG Cooperative Groups
  *  @ingroup API
  *  @{
@@ -111,6 +109,7 @@ class thread_group {
  *  on Windows.
  *
  */
+ 
 /** \brief The multi-grid cooperative group type
  *
  *  \details Represents an inter-device cooperative group type where the
@@ -120,24 +119,29 @@ class thread_group {
  *  on Windows.
  */
 class multi_grid_group : public thread_group {
-  // Only these friend functions are allowed to construct an object of this class
-  // and access its resources
+  //! Only these friend functions are allowed to construct an object of this class
+  //! and access its resources
   friend __CG_QUALIFIER__ multi_grid_group this_multi_grid();
 
  protected:
-  // Construct mutli-grid thread group (through the API this_multi_grid())
+  //! Construct mutli-grid thread group (through the API this_multi_grid())
   explicit __CG_QUALIFIER__ multi_grid_group(uint32_t size)
       : thread_group(internal::cg_multi_grid, size) {}
 
  public:
-  // Number of invocations participating in this multi-grid group. In other
-  // words, the number of GPUs
+
+  //! Number of invocations participating in this multi-grid group. In other
+  //! words, the number of GPUs
   __CG_QUALIFIER__ uint32_t num_grids() { return internal::multi_grid::num_grids(); }
-  // Rank of this invocation. In other words, an ID number within the range
-  // [0, num_grids()) of the GPU, this kernel is running on
+  
+  //! Rank of this invocation. In other words, an ID number within the range
+  //! [0, num_grids()) of the GPU, this kernel is running on
   __CG_QUALIFIER__ uint32_t grid_rank() { return internal::multi_grid::grid_rank(); }
+  //! @copydoc thread_group::thread_rank
   __CG_QUALIFIER__ uint32_t thread_rank() const { return internal::multi_grid::thread_rank(); }
+  //! @copydoc thread_group::is_valid
   __CG_QUALIFIER__ bool is_valid() const { return internal::multi_grid::is_valid(); }
+  //! @copydoc thread_group::sync
   __CG_QUALIFIER__ void sync() const { internal::multi_grid::sync(); }
 };
 
@@ -168,12 +172,15 @@ class grid_group : public thread_group {
   friend __CG_QUALIFIER__ grid_group this_grid();
 
  protected:
-  // Construct grid thread group (through the API this_grid())
+  //! Construct grid thread group (through the API this_grid())
   explicit __CG_QUALIFIER__ grid_group(uint32_t size) : thread_group(internal::cg_grid, size) {}
 
  public:
+  //! @copydoc thread_group::thread_rank
   __CG_QUALIFIER__ uint32_t thread_rank() const { return internal::grid::thread_rank(); }
+  //! @copydoc thread_group::is_valid
   __CG_QUALIFIER__ bool is_valid() const { return internal::grid::is_valid(); }
+  //! @copydoc thread_group::sync
   __CG_QUALIFIER__ void sync() const { internal::grid::sync(); }
 };
 
@@ -232,14 +239,19 @@ class thread_block : public thread_group {
   }
 
  public:
-  // 3-dimensional block index within the grid
+  //! Returns 3-dimensional block index within the grid
   __CG_STATIC_QUALIFIER__ dim3 group_index() { return internal::workgroup::group_index(); }
-  // 3-dimensional thread index within the block
+  //! Returns 3-dimensional thread index within the block
   __CG_STATIC_QUALIFIER__ dim3 thread_index() { return internal::workgroup::thread_index(); }
+  //! @copydoc thread_group::thread_rank
   __CG_STATIC_QUALIFIER__ uint32_t thread_rank() { return internal::workgroup::thread_rank(); }
+  //! @copydoc thread_group::size
   __CG_STATIC_QUALIFIER__ uint32_t size() { return internal::workgroup::size(); }
+  //! @copydoc thread_group::is_valid
   __CG_STATIC_QUALIFIER__ bool is_valid() { return internal::workgroup::is_valid(); }
+  //! @copydoc thread_group::sync
   __CG_STATIC_QUALIFIER__ void sync() { internal::workgroup::sync(); }
+  //! Returns the group dimensions
   __CG_QUALIFIER__ dim3 group_dim() { return internal::workgroup::block_dim(); }
 };
 
@@ -295,12 +307,15 @@ class tiled_group : public thread_group {
   }
 
  public:
+  //! @copydoc thread_group::size
   __CG_QUALIFIER__ unsigned int size() const { return (coalesced_info.tiled_info.size); }
 
+  //! @copydoc thread_group::thread_rank
   __CG_QUALIFIER__ unsigned int thread_rank() const {
     return (internal::workgroup::thread_rank() & (coalesced_info.tiled_info.size - 1));
   }
 
+  //! @copydoc thread_group::sync
   __CG_QUALIFIER__ void sync() const {
     internal::tiled_group::sync();
   }
@@ -379,26 +394,41 @@ class coalesced_group : public thread_group {
   }
 
  public:
+   //! @copydoc thread_group::size
    __CG_QUALIFIER__ unsigned int size() const {
      return coalesced_info.size;
    }
 
+   //! @copydoc thread_group::thread_rank
    __CG_QUALIFIER__ unsigned int thread_rank() const {
      return internal::coalesced_group::masked_bit_count(coalesced_info.member_mask);
-    }
+   }
 
+   //! @copydoc thread_group::sync
    __CG_QUALIFIER__ void sync() const {
        internal::coalesced_group::sync();
     }
-
+   
+   //! Returns the linear rank of the group within the set of tiles partitioned
+   //! from a parent group (bounded by meta_group_size)
    __CG_QUALIFIER__ unsigned int meta_group_rank() const {
        return coalesced_info.tiled_info.meta_group_rank;
     }
 
+   //! Returns the number of groups created when the parent group was partitioned.
    __CG_QUALIFIER__ unsigned int meta_group_size() const {
        return coalesced_info.tiled_info.meta_group_size;
    }
 
+  /** \brief Shuffle operation on group level
+   *
+   *  \details Direct copy from srcRank
+   * 
+   *  \tparam T The type of the  can be a 32-bit integer type, 64-bit integer type or 
+   *              a single precision or double precision floating point type.
+   *  \param var [in] the target lane variable
+   *  \param srcRank [in] lane index of the source
+   */
   template <class T>
   __CG_QUALIFIER__ T shfl(T var, int srcRank) const {
     static_assert(is_valid_type<T>::value, "Neither an integer or float type.");
@@ -412,6 +442,15 @@ class coalesced_group : public thread_group {
     return __shfl(var, lane, __AMDGCN_WAVEFRONT_SIZE);
   }
 
+  /** \brief Shuffle down operation on group level
+   *
+   *  \details Copy from a lane with realtive higher lane index
+   * 
+   *  \tparam T - The type of the  can be a 32-bit integer type, 64-bit integer type or 
+   *              a single precision or double precision floating point type.
+   *  \param var [in] the target lane variable
+   *  \param lane_delta [in] relative lane index of the source to the target lane index
+   */
   template <class T>
   __CG_QUALIFIER__ T shfl_down(T var, unsigned int lane_delta) const {
     static_assert(is_valid_type<T>::value, "Neither an integer or float type.");
@@ -439,6 +478,15 @@ class coalesced_group : public thread_group {
     return __shfl(var, lane, __AMDGCN_WAVEFRONT_SIZE);
   }
 
+  /** \brief Shuffle up operation on group level
+   *
+   *  \details Copy from a lane with realtive lower lane index
+   * 
+   *  \tparam T - The type of the  can be a 32-bit integer type, 64-bit integer type or 
+   *              a single precision or double precision floating point type.
+   *  \param var [in] the target lane variable
+   *  \param lane_delta [in] relative lane index of the source to the target lane index
+   */
   template <class T>
   __CG_QUALIFIER__ T shfl_up(T var, unsigned int lane_delta) const {
     static_assert(is_valid_type<T>::value, "Neither an integer or float type.");
@@ -607,12 +655,12 @@ template <unsigned int tileSize> class tile_base {
   _CG_STATIC_CONST_DECL_ unsigned int numThreads = tileSize;
 
  public:
-  // Rank of the thread within this tile
+  //! Rank of the thread within this tile
   _CG_STATIC_CONST_DECL_ unsigned int thread_rank() {
     return (internal::workgroup::thread_rank() & (numThreads - 1));
   }
 
-  // Number of threads within this tile
+  //! Number of threads within this tile
   __CG_STATIC_QUALIFIER__ unsigned int size() { return numThreads; }
 };
 /**
@@ -630,21 +678,57 @@ template <unsigned int size> class thread_block_tile_base : public tile_base<siz
     internal::tiled_group::sync();
   }
 
+  /** \brief Shuffle operation on group level
+   *
+   *  \details Direct copy from srcRank
+   * 
+   *  \tparam T The type of the  can be a 32-bit integer type, 64-bit integer type or 
+   *              a single precision or double precision floating point type.
+   *  \param var [in] the target lane variable
+   *  \param srcRank [in] lane index of the source
+   */
   template <class T> __CG_QUALIFIER__ T shfl(T var, int srcRank) const {
     static_assert(is_valid_type<T>::value, "Neither an integer or float type.");
     return (__shfl(var, srcRank, numThreads));
   }
 
+  /** \brief Shuffle down operation on group level
+   *
+   *  \details Copy from a lane with realtive higher lane index
+   * 
+   *  \tparam T - The type of the  can be a 32-bit integer type, 64-bit integer type or 
+   *              a single precision or double precision floating point type.
+   *  \param var [in] the target lane variable
+   *  \param lane_delta [in] relative lane index of the source to the target lane index
+   */
   template <class T> __CG_QUALIFIER__ T shfl_down(T var, unsigned int lane_delta) const {
     static_assert(is_valid_type<T>::value, "Neither an integer or float type.");
     return (__shfl_down(var, lane_delta, numThreads));
   }
 
+  /** \brief Shuffle up operation on group level
+   *
+   *  \details Copy from a lane with realtive lower lane index
+   * 
+   *  \tparam T - The type of the  can be a 32-bit integer type, 64-bit integer type or 
+   *              a single precision or double precision floating point type.
+   *  \param var [in] the target lane variable
+   *  \param lane_delta [in] relative lane index of the source to the target lane index
+   */
   template <class T> __CG_QUALIFIER__ T shfl_up(T var, unsigned int lane_delta) const {
     static_assert(is_valid_type<T>::value, "Neither an integer or float type.");
     return (__shfl_up(var, lane_delta, numThreads));
   }
 
+  /** \brief Shuffle xor operation on group level
+   *
+   *  \details Copy from a lane with bitwise XOR of own lane index
+   * 
+   *  \tparam T - The type of the  can be a 32-bit integer type, 64-bit integer type or 
+   *              a single precision or double precision floating point type.
+   *  \param var [in] the target lane variable
+   *  \param laneMask [in] lane mask used during the bitwise XOR operation
+   */
   template <class T> __CG_QUALIFIER__ T shfl_xor(T var, unsigned int laneMask) const {
     static_assert(is_valid_type<T>::value, "Neither an integer or float type.");
     return (__shfl_xor(var, laneMask, numThreads));
@@ -655,13 +739,13 @@ template <unsigned int size> class thread_block_tile_base : public tile_base<siz
 template <unsigned int tileSize, typename ParentCGTy>
 class parent_group_info {
 public:
-  // Returns the linear rank of the group within the set of tiles partitioned
-  // from a parent group (bounded by meta_group_size)
+  //! Returns the linear rank of the group within the set of tiles partitioned
+  //! from a parent group (bounded by meta_group_size)
   __CG_STATIC_QUALIFIER__ unsigned int meta_group_rank() {
     return ParentCGTy::thread_rank() / tileSize;
   }
 
-  // Returns the number of groups created when the parent group was partitioned.
+  //! Returns the number of groups created when the parent group was partitioned.
   __CG_STATIC_QUALIFIER__ unsigned int meta_group_size() {
     return (ParentCGTy::size() + tileSize - 1) / tileSize;
   }
@@ -714,10 +798,13 @@ class thread_block_tile_type<tileSize, void> : public thread_block_tile_base<til
   using tbtBase::sync;
   using tbtBase::thread_rank;
 
+  //! Returns the linear rank of the group within the set of tiles partitioned
+  //! from a parent group (bounded by meta_group_size)
   __CG_QUALIFIER__ unsigned int meta_group_rank() const {
     return coalesced_info.tiled_info.meta_group_rank;
   }
 
+  //! Returns the number of groups created when the parent group was partitioned.
   __CG_QUALIFIER__ unsigned int meta_group_size() const {
     return coalesced_info.tiled_info.meta_group_size;
   }
